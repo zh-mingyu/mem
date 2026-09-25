@@ -1,0 +1,11 @@
+config.py
+outputs/
+logs/
+thread_lancedb_data/
+tmp/
+cache/
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
