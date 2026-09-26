@@ -69,47 +69,25 @@ def test_judge_task_rules_cover_temporal_and_multi_hop_modes():
     assert "combined premises" in multi
 
 
-def test_longmemeval_temporal_judge_keeps_off_by_one_protocol():
-    prompt = build_binary_judge_prompt(
-        "How many days?",
-        "18 days",
-        "19 days",
-        question_type="temporal-reasoning",
-        benchmark="longmemeval",
-    )
-    assert "off-by-one error" in prompt
-
-
 def test_abstention_judge_uses_unanswerable_rubric():
     prompt = build_binary_judge_prompt(
         "Which unsupported item?",
         "The item is absent.",
         "It is not mentioned in the conversation.",
-        benchmark="longmemeval",
+        benchmark="memgallery",
         abstention=True,
     )
     assert "correctly identifies that the question cannot be answered" in prompt
     assert "Do not require the response to repeat" in prompt
 
 
-def test_accuracy_judge_has_benchmark_specific_subset_rule():
-    long_prompt = build_accuracy_judge_prompt(
-        "Which items?", "A and B", "A", benchmark="longmemeval"
-    )
-    locomo_prompt = build_accuracy_judge_prompt(
-        "Which items?", "A and B", "A", benchmark="locomo"
-    )
-    assert "a proper subset is not sufficient" in long_prompt
-    assert "correct relevant subset" in locomo_prompt
-
-
-def test_longmemeval_preference_keeps_rubric_subset_rule():
+def test_preference_judge_keeps_rubric_subset_rule():
     prompt = build_binary_judge_prompt(
         "What should I choose?",
         "The user prefers quiet places and natural scenery.",
         "Choose a quiet place.",
         question_type="preference",
-        benchmark="longmemeval",
+        benchmark="memgallery",
     )
     assert "need not repeat every rubric detail" in prompt
     assert "proper subset is not sufficient" not in prompt
@@ -148,7 +126,7 @@ def test_multi_hop_is_not_forced_into_a_list():
 
 
 def test_memgallery_task_code_mapping_is_specific():
-    from test_long_benchmarks import _category_for_prompt
+    from test_memgallery import _category_for_prompt
 
     assert _category_for_prompt("TR") == "temporal"
     assert _category_for_prompt("CD") == "conflict"

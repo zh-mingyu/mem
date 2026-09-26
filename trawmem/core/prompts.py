@@ -293,21 +293,12 @@ def _judge_task_rules(
 
     mode = str(question_type or "").strip().lower()
     category_value = str(category or "").strip().lower()
-    benchmark_value = str(benchmark or "").strip().lower().replace("_", "-")
     rules: list[str] = []
     if "temporal" in mode:
-        if benchmark_value in {"longmemeval", "longmemeval-s"}:
-            rules.append(
-                "For LongMemEval temporal-reasoning questions, do not penalize "
-                "an off-by-one error in a numeric duration measured in days, "
-                "weeks, or months; do not accept a different event date or time "
-                "period."
-            )
-        else:
-            rules.append(
-                "For temporal questions, accept equivalent date or time formats "
-                "only when they denote the same date or time period."
-            )
+        rules.append(
+            "For temporal questions, accept equivalent date or time formats "
+            "only when they denote the same date or time period."
+        )
     if "knowledge" in mode or "update" in mode:
         rules.append(
             "For knowledge-update questions, the latest supported value must be "
@@ -339,10 +330,9 @@ def _judge_task_rules(
             "abstention when the requested fact is unsupported or not mentioned; "
             "an invented specific answer is wrong."
         )
-    # ``multi-session`` is a LongMemEval storage/task setting, not a request
-    # for a multi-item answer.  A multi-hop question asks for a conclusion
-    # supported by several premises; only an explicitly set-valued question
-    # requires completeness over multiple requested items.
+    # A multi-hop question asks for a conclusion supported by several premises;
+    # only an explicitly set-valued question requires completeness over
+    # multiple requested items.
     is_multi_hop = "multi-hop" in mode or "multi_hop" in mode
     is_set_valued = "set-valued" in mode or "set_valued" in mode
     if is_set_valued:
@@ -393,10 +383,8 @@ def build_accuracy_judge_prompt(
 ) -> str:
     """Build the JSON score prompt used by a benchmark-specific evaluator.
 
-    LongMemEval marks some unanswerable questions in ``question_id`` rather
-    than in ``question_type``; callers pass that signal explicitly through
-    ``abstention`` so the reference explanation is not treated as a normal
-    answer string.
+    Callers pass ``abstention`` explicitly so an explanation for an
+    unanswerable item is not treated as a normal answer string.
     """
 
     category_text = "" if category is None else f"\nCategory: {category}"
@@ -405,8 +393,7 @@ def build_accuracy_judge_prompt(
         category=category,
         question_type=question_type,
         benchmark=benchmark,
-        strict_multi=str(benchmark or "").strip().lower().replace("_", "-")
-        in {"longmemeval", "longmemeval-s"},
+        strict_multi=False,
         abstention=abstention,
     )
     mode = str(question_type or "").strip().lower()
@@ -417,7 +404,6 @@ def build_accuracy_judge_prompt(
         or "unanswerable" in mode
         or category_value in {"5", "adversarial"}
     )
-    benchmark_value = str(benchmark or "").strip().lower().replace("_", "-")
     if is_abstention:
         evaluation_rule = (
             "This is an unanswerable item. Assign 1.0 only when the prediction "
@@ -431,11 +417,6 @@ def build_accuracy_judge_prompt(
             "For a preference or rubric question, assign 1.0 when the response "
             "uses the recalled personal information correctly; it need not repeat "
             "every rubric detail."
-        )
-    elif benchmark_value in {"longmemeval", "longmemeval-s"}:
-        evaluation_rule = (
-            "Require all central information needed by the reference; a proper "
-            "subset is not sufficient."
         )
     else:
         evaluation_rule = (
@@ -489,10 +470,9 @@ def build_binary_judge_prompt(
 ) -> str:
     """Build a YES/NO judge prompt for binary benchmark protocols.
 
-    LongMemEval marks unanswerable items in ``question_id`` rather than in the
-    task label.  Those items use a separate rubric: the reference is an
-    explanation of why the question is unanswerable, not a list of facts that
-    the generated response must repeat.
+    Abstention items use a separate rubric: the reference is an explanation of
+    why the question is unanswerable, not a list of facts that the generated
+    response must repeat.
     """
 
     category_text = "" if category is None else f"\nCategory: {category}"
@@ -529,17 +509,11 @@ Return exactly one token: YES or NO."""
         abstention=abstention,
     )
     mode = str(question_type or "").strip().lower()
-    benchmark_value = str(benchmark or "").strip().lower().replace("_", "-")
     if "preference" in mode or "rubric" in mode:
         binary_rule = (
             "For a preference or rubric question, accept a response that uses "
             "the recalled personal information correctly; it need not repeat "
             "every rubric detail."
-        )
-    elif benchmark_value in {"longmemeval", "longmemeval-s"}:
-        binary_rule = (
-            "Require all central information needed by the reference; when "
-            "several items are required, a proper subset is not sufficient."
         )
     else:
         binary_rule = (

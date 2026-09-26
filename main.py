@@ -10,7 +10,7 @@ from trawmem.core.answer_generator import AnswerGenerator
 from trawmem.core.settings import settings as config
 
 
-class ThreadWorkspaceSystem:
+class TrawMemSystem:
     """
     Query-conditioned thread-workspace memory system.
 
@@ -197,11 +197,11 @@ def create_system(
     max_parallel_workers: Optional[int] = None,
     enable_parallel_retrieval: Optional[bool] = None,
     max_retrieval_workers: Optional[int] = None
-) -> ThreadWorkspaceSystem:
+) -> TrawMemSystem:
     """
-    Create a ThreadWorkspace system instance.
+    Create a TrawMem system instance.
     """
-    return ThreadWorkspaceSystem(
+    return TrawMemSystem(
         clear_db=clear_db,
         enable_planning=enable_planning,
         enable_parallel_processing=enable_parallel_processing,
@@ -243,7 +243,3 @@ if __name__ == "__main__":
     print(f"Answer: {answer}")
     
     print("\nQuick test completed.")
-
-
-# Old evaluators import this name.  It is an API alias, not a TrawMem path.
-TrawMemSystem = ThreadWorkspaceSystem

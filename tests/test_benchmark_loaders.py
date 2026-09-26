@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from test_long_benchmarks import load_memgallery
+from test_memgallery import load_memgallery
 
 
 def test_memgallery_official_schema(tmp_path):

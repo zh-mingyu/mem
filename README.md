@@ -16,7 +16,7 @@ directly. The method and result names exposed by this repository use `TrawMem`.
 - `trawmem/`: implementation of thread construction, graph routing, role-aware workspace assembly, and answer generation
 - `tests/`: focused unit tests
 - `test_locomo10.py`: LoCoMo evaluation adapter
-- `test_long_benchmarks.py`: LongMemEval-S and Mem-Gallery adapters
+- `test_memgallery.py`: MemGallery evaluation adapter
 - `config.py.example`: configuration template; copy it to `config.py` locally
 
 ## Install
@@ -45,13 +45,12 @@ TRAWMEM_EMBEDDING_PATH=/path/to/embedding-model \
 /bin/bash ./run-trawmem.sh
 ```
 
-Use `TRAWMEM_BENCHMARK=longmemeval` or `TRAWMEM_BENCHMARK=memgallery`
-for the other adapters. The runner writes logs and results to the configured
-output directory, which is ignored by Git.
+Use `TRAWMEM_BENCHMARK=memgallery` for the MemGallery adapter. The runner
+writes logs and results to the configured output directory, which is ignored by
+Git. The paper evaluation scope is LoCoMo and MemGallery.
 
 The full benchmark wrapper is `run-trawmem-full.sh`; provide dataset paths
-through `TRAWMEM_LOCOMO_DATASET`, `TRAWMEM_LONGMEMEVAL_DATASET`, and
-`TRAWMEM_MEMGALLERY_DATASET`.
+through `TRAWMEM_LOCOMO_DATASET` and `TRAWMEM_MEMGALLERY_DATASET`.
 
 ## Reproducibility scope
 

@@ -54,7 +54,7 @@ def test_judge_failure_is_not_scored_as_zero():
 
 
 def test_binary_judge_parser_accepts_only_an_unambiguous_first_verdict():
-    from test_long_benchmarks import _parse_binary_judge_response
+    from test_memgallery import _parse_binary_judge_response
 
     assert _parse_binary_judge_response("YES.") is True
     assert _parse_binary_judge_response("no\nbrief explanation") is False

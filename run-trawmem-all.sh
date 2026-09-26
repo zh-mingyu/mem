@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Run all three TrawMem benchmarks in one shard.  The caller owns one GPU;
+# Run both paper benchmarks in one shard.  The caller owns one GPU;
 # each benchmark is executed sequentially with its own output directory and
 # LanceDB path while reusing the same local vLLM environment.
 
@@ -12,12 +12,12 @@ PROJECT_DIR="$(cd "${PROJECT_DIR}" && pwd)"
 ROOT="${DATA_ROOT:-$(cd "${PROJECT_DIR}/.." && pwd)}"
 BASE_OUTPUT="${TRAWMEM_OUTPUT_ROOT:-${PROJECT_DIR}/outputs/full_qwen38_${SLURM_JOB_ID:-local}_s${TRAWMEM_SHARD_INDEX:-0}}"
 
-LOCOMO_DATASET="${TRAWMEM_LOCOMO_DATASET:-${TRAWMEM_DATASET_PATH:-${ROOT}/baseline/benchmark/LoCoMo/data/locomo10.json}}"
-LONGMEMEVAL_DATASET="${TRAWMEM_LONGMEMEVAL_DATASET:-${ROOT}/data/longmemeval/longmemeval_s.json}"
-MEMGALLERY_DATASET="${TRAWMEM_MEMGALLERY_DATASET:-${ROOT}/Mem-Gallery-main/benchmark/data/data}"
+LOCOMO_DATASET="${TRAWMEM_LOCOMO_DATASET:-}"
+MEMGALLERY_DATASET="${TRAWMEM_MEMGALLERY_DATASET:-}"
 
+test -n "${LOCOMO_DATASET}" || { echo "Set TRAWMEM_LOCOMO_DATASET to the LoCoMo JSON file." >&2; exit 2; }
 test -s "${LOCOMO_DATASET}"
-test -s "${LONGMEMEVAL_DATASET}"
+test -n "${MEMGALLERY_DATASET}" || { echo "Set TRAWMEM_MEMGALLERY_DATASET to the MemGallery data directory or file." >&2; exit 2; }
 if [[ -d "${MEMGALLERY_DATASET}" ]]; then
   find "${MEMGALLERY_DATASET}" -type f \( -name '*.json' -o -name '*.jsonl' \) -print -quit | grep -q .
 else
@@ -38,7 +38,6 @@ run_one() {
 }
 
 run_one locomo "${LOCOMO_DATASET}"
-run_one longmemeval "${LONGMEMEVAL_DATASET}"
 run_one memgallery "${MEMGALLERY_DATASET}"
 
 touch "${BASE_OUTPUT}/TRAWMEM_FULL_COMPLETED"

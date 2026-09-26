@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # TrawMem evaluation. ``TRAWMEM_BENCHMARK`` selects one of
-# locomo, longmemeval, or memgallery; the full three-benchmark worker invokes
-# this script once per benchmark so every run has an isolated memory bank.
+# locomo or memgallery; the full paper-benchmark worker invokes this script
+# once per benchmark so every run has an isolated memory bank.
 # ``TRAWMEM_LLM_BACKEND=remote`` skips local vLLM and uses an OpenAI-compatible
 # relay while retaining the local embedding model.
 
@@ -61,7 +61,7 @@ PORT="${TRAWMEM_PORT:-$((28000 + JOB_ID % 1000))}"
 WORKSPACE_ROLE_SCOPE="${TRAWMEM_WORKSPACE_ROLE_SCOPE:-full}"
 JUDGE_ENABLED_RAW="${TRAWMEM_LLM_JUDGE:-1}"
 case "${BENCHMARK}" in
-  locomo|longmemeval|memgallery) ;;
+  locomo|memgallery) ;;
   *) echo "Invalid TRAWMEM_BENCHMARK: ${BENCHMARK}" >&2; exit 2 ;;
 esac
 case "${WORKSPACE_ROLE_SCOPE}" in
@@ -339,9 +339,9 @@ if [[ "${BENCHMARK}" == "locomo" ]]; then
     "${TEST_ARGS[@]}" \
     --result-file "${RUN_DIR}/results.json"
 else
-  TEST_SCRIPT="${PROJECT_DIR}/test_long_benchmarks.py"
+  TEST_SCRIPT="${PROJECT_DIR}/test_memgallery.py"
   test -f "${TEST_SCRIPT}" || {
-    echo "Missing long-benchmark evaluator: ${TEST_SCRIPT}" >&2
+    echo "Missing MemGallery evaluator: ${TEST_SCRIPT}" >&2
     exit 2
   }
   PYTHONUNBUFFERED=1 "${PYTHON}" "${TEST_SCRIPT}" \

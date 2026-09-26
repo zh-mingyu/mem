@@ -1,8 +1,8 @@
-"""TrawMem evaluation for LongMemEval-S and Mem-Gallery.
+"""TrawMem evaluation for MemGallery.
 
-The LoCoMo evaluator predates the multi-benchmark run and has a deliberately
-LoCoMo-specific data model.  This file keeps the other two loaders separate,
-but uses the same TrawMem system and records the same quality/cost fields.
+The LoCoMo evaluator has a deliberately LoCoMo-specific data model. This file
+keeps the MemGallery loader separate, but uses the same TrawMem system and
+records the same quality/cost fields.
 Mem-Gallery is evaluated with the textual/caption protocol: TrawMem currently
 does not contain an image encoder, so an image path alone is never treated as
 visual evidence.
@@ -186,7 +186,7 @@ def _turns(
 ) -> list[dict[str, Any]]:
     """Normalize common conversation encodings into TrawMem turns."""
     if isinstance(raw, dict):
-        # LoCoMo-style session_N mapping.
+        # Session-style mapping with session_N keys.
         session_keys = [k for k in raw if str(k).startswith("session_") and not str(k).endswith("_date_time")]
         if session_keys:
             out: list[dict[str, Any]] = []
@@ -221,9 +221,9 @@ def _turns(
             continue
         if not isinstance(item, dict):
             continue
-        # Mem-Gallery/LoCoMo image metadata is retained as text evidence.  The
-        # identifier matters for visual-search questions, while the caption is
-        # the only visual signal available to this text-only protocol.
+        # Image metadata is retained as text evidence. The identifier matters
+        # for visual-search questions, while the caption is the only visual
+        # signal available to this text-only protocol.
         caption = (
             item.get("blip_caption")
             or item.get("image_caption")
@@ -292,9 +292,9 @@ def _memgallery_turns(
 ) -> list[dict[str, Any]]:
     """Normalize the official Mem-Gallery session/dialogue schema.
 
-    Mem-Gallery stores one dialogue item as ``user`` and ``assistant`` fields,
-    unlike the role/content message format used by LongMemEval.  Image
-    captions are retained as text because this TrawMem protocol is text-only.
+    Mem-Gallery stores one dialogue item as ``user`` and ``assistant`` fields.
+    Image captions are retained as text because this TrawMem protocol is
+    text-only.
     """
     if not isinstance(conversation_data, list):
         return []
@@ -340,58 +340,6 @@ def _memgallery_turns(
                     "timestamp": timestamp,
                 })
     return turns
-
-
-def load_longmemeval(path: str) -> list[dict[str, Any]]:
-    raw = json.loads(Path(path).read_text(encoding="utf-8"))
-    if isinstance(raw, dict):
-        raw = raw.get("data") or raw.get("samples") or raw.get("questions") or raw.get("records")
-    if not isinstance(raw, list):
-        raise ValueError("LongMemEval file must contain a JSON list")
-    samples = []
-    for index, record in enumerate(raw):
-        question_id = str(record.get("question_id") or f"longmemeval_{index}")
-        # LongMemEval encodes abstention items in the id suffix (``_abs``);
-        # the public ``question_type`` remains the storage/task type.
-        # Follow the released evaluator's marker convention: ``_abs`` may be
-        # embedded in a versioned question id, so do not require it to be the
-        # final suffix.
-        is_abstention = "_abs" in question_id.lower()
-        session_ids = record.get("haystack_session_ids") or []
-        session_dates = record.get("haystack_dates") or []
-        sessions = []
-        for session_index, session in enumerate(record.get("haystack_sessions", [])):
-            session_id = (
-                session_ids[session_index]
-                if session_index < len(session_ids)
-                else f"sess_{session_index}"
-            )
-            session_date = (
-                session_dates[session_index]
-                if session_index < len(session_dates)
-                else ""
-            )
-            sessions.extend(
-                _turns(
-                    session,
-                    prefix=f"s{session_index}/",
-                    session_id=str(session_id),
-                    timestamp=str(session_date or ""),
-                )
-            )
-        samples.append({
-            "sample_id": question_id,
-            "turns": sessions,
-            "qas": [{
-                "question": record.get("question", ""),
-                "reference": _text(record.get("answer", "")),
-                "category": record.get("question_type", ""),
-                "question_type": record.get("question_type", ""),
-                "question_id": question_id,
-                "abstention": is_abstention,
-            }],
-        })
-    return samples
 
 
 def _find_conversation(record: dict[str, Any]) -> Any:
@@ -540,8 +488,7 @@ def _category_for_prompt(qtype: str) -> str:
         return "preference"
     if "abstention" in value or "unanswerable" in value or value == "ar":
         return "abstention"
-    # LongMemEval's ``multi-session`` denotes the source/task setting, not a
-    # multi-hop or set-valued answer.  Keep it on the generic grading path.
+    # Keep unknown task labels on the generic grading path.
     if (
         "multi-hop" in value
         or "multi_hop" in value
@@ -577,9 +524,7 @@ def _write_partial(
         "checkpoint": {
             "version": 1,
             "benchmark": benchmark,
-            # Version 2 includes benchmark metadata such as LongMemEval's
-            # question-id-based abstention flag in each QA record.
-            "sample_identity_version": 2 if benchmark in {"memgallery", "longmemeval"} else 1,
+            "sample_identity_version": 2 if benchmark == "memgallery" else 1,
             "shard_index": shard_index,
             "num_shards": num_shards,
             "model": getattr(config, "LLM_MODEL", ""),
@@ -594,10 +539,7 @@ def _write_partial(
 
 
 def run(args: argparse.Namespace) -> None:
-    if args.benchmark == "longmemeval":
-        samples = load_longmemeval(args.dataset)
-    else:
-        samples = load_memgallery(args.dataset)
+    samples = load_memgallery(args.dataset)
     if args.num_samples is not None:
         samples = samples[: args.num_samples]
     shard_samples = [(i, s) for i, s in enumerate(samples) if i % args.num_shards == args.shard_index]
@@ -643,7 +585,7 @@ def run(args: argparse.Namespace) -> None:
                 checkpoint.get("version") == 1
                 and checkpoint.get("benchmark") == args.benchmark
                 and checkpoint.get("sample_identity_version", 1)
-                == (2 if args.benchmark in {"memgallery", "longmemeval"} else 1)
+                == (2 if args.benchmark == "memgallery" else 1)
                 and checkpoint.get("shard_index") == args.shard_index
                 and checkpoint.get("num_shards") == args.num_shards
                 and checkpoint.get("model", getattr(config, "LLM_MODEL", "")) == getattr(config, "LLM_MODEL", "")
@@ -860,7 +802,7 @@ def run(args: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--benchmark", choices=("longmemeval", "memgallery"), required=True)
+    parser.add_argument("--benchmark", choices=("memgallery",), required=True)
     parser.add_argument("--dataset", required=True)
     parser.add_argument("--result-file", required=True)
     parser.add_argument("--shard-index", type=int, default=0)

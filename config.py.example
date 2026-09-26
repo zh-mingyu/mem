@@ -59,7 +59,7 @@ USE_JSON_FORMAT = True
 # Memory Building Parameters
 # ============================================================================
 
-# Number of dialogues per window (for locomo; for other dataset, please finetune it)
+# Number of dialogues per window for benchmark conversations.
 WINDOW_SIZE = 20
 
 # Maximum turns in one event-thread recovery chunk. The LLM may make finer
